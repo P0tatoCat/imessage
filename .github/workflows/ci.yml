@@ -32,8 +32,6 @@ jobs:
       - name: go vet (imessage)
         run: go vet ./imessage/...
 
-      - name: go vet (bbctl)
-        run: go vet ./cmd/bbctl/...
 
   # ───────────────────────────────────────────────────────────────
   # Unit tests – pure-Go packages (no Rust/CGO bridge needed)

@@ -76,8 +76,8 @@ jobs:
       - name: Create tarball
         run: |
           tar czf mautrix-imessage-v2-macos-arm64.tar.gz \
-            mautrix-imessage-v2.app/ bbctl \
-            scripts/install.sh scripts/install-beeper.sh scripts/reset-bridge.sh
+            mautrix-imessage-v2.app/ \
+            scripts/install.sh scripts/reset-bridge.sh
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -129,8 +129,8 @@ jobs:
       - name: Create tarball
         run: |
           tar czf mautrix-imessage-v2-linux-amd64.tar.gz \
-            mautrix-imessage-v2 bbctl \
-            scripts/install-linux.sh scripts/install-beeper-linux.sh \
+            mautrix-imessage-v2 \
+            scripts/install-linux.sh \
             scripts/bootstrap-linux.sh scripts/reset-bridge.sh
 
       - name: Upload artifact

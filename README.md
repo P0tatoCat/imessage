@@ -12,18 +12,6 @@ This is the **v2** rewrite using [rustpush](https://github.com/OpenBubbles/rustp
 
 macOS 13+ required (Ventura or later). Sign into iCloud on the Mac running the bridge (Settings → Apple ID) — this lets Apple recognize the device so login works without 2FA prompts.
 
-### With Beeper
-
-```bash
-git clone https://github.com/lrhodin/imessage.git
-cd imessage
-make install-beeper
-```
-
-The installer handles everything: Homebrew, dependencies, building, Beeper login, iMessage login, config, and LaunchAgent setup.
-
-### With a Self-Hosted Homeserver
-
 ```bash
 git clone https://github.com/lrhodin/imessage.git
 cd imessage
@@ -156,16 +144,6 @@ If the bridge runs outside your LAN (e.g., cloud VM), forward port 5001 TCP to y
 
 ### Step 2: Build and install the bridge (on Linux)
 
-#### With Beeper
-
-```bash
-git clone https://github.com/lrhodin/imessage.git
-cd imessage
-make install-beeper
-```
-
-#### With a Self-Hosted Homeserver
-
 ```bash
 git clone https://github.com/lrhodin/imessage.git
 cd imessage
@@ -176,7 +154,7 @@ On first run expect ~3 minutes for the Rust library to compile.
 
 ### Step 3: Login
 
-`make install` / `make install-beeper` detects that no login exists and runs the bridge's `login` subcommand inline at the end of Step 2. You're prompted right there in the terminal for:
+`make install` detects that no login exists and runs the bridge's `login` subcommand inline at the end of Step 2. You're prompted right there in the terminal for:
 
 1. Your hardware key (paste the base64 from Step 1)
 2. Your Apple ID and password
@@ -190,7 +168,7 @@ When the script finishes you're already logged in and the bridge is up.
 
 There are two ways to log in:
 
-- **Through the install script (default).** `make install` and `make install-beeper` detect a missing login and run `mautrix-imessage-v2 login` inline at the end of the install. This is the path almost everyone uses — answer the prompts in the terminal and you're done.
+- **Through the install script (default).** `make install` detects a missing login and runs `mautrix-imessage-v2 login` inline at the end of the install. This is the path almost everyone uses — answer the prompts in the terminal and you're done.
 - **Through the bridge bot (alternative).** DM the bot in the Matrix management room and run the **"Apple ID (External Key)"** login flow. Useful if you skipped the script's login step, want to switch handles, or are re-logging without re-running install.
 
 Either path follows the same prompts: Apple ID → password → 2FA (if needed) → handle selection. On macOS, if the Mac is signed into iCloud with the same Apple ID, login completes without 2FA.
@@ -296,7 +274,7 @@ The name pre-filled on the FaceTime web join page comes from your Apple Account.
 
 ### Opting out
 
-If you have a Mac or iPhone signed into the same Apple ID, FaceTime rings there natively — the bridge's web-join wrapper adds nothing, so you should disable it. The `make install` / `make install-beeper` scripts ask "Disable FaceTime Bridge?" both on first install and on every subsequent re-run, so you can flip this at any time without editing YAML by hand. (You can also set `disable_facetime: true` in `~/.local/share/mautrix-imessage/config.yaml` directly.) Disabling skips every `facetime-*` command and suppresses all inbound FaceTime notices in your Matrix portals.
+If you have a Mac or iPhone signed into the same Apple ID, FaceTime rings there natively — the bridge's web-join wrapper adds nothing, so you should disable it. The install scripts ask "Disable FaceTime Bridge?" both on first install and on every subsequent re-run, so you can flip this at any time without editing YAML by hand. (You can also set `disable_facetime: true` in `~/.local/share/mautrix-imessage/config.yaml` directly.) Disabling skips every `facetime-*` command and suppresses all inbound FaceTime notices in your Matrix portals.
 
 ## Focus & Do Not Disturb
 
@@ -304,12 +282,11 @@ When a contact toggles a Focus mode (Do Not Disturb, Sleep, Work, etc.) on iOS 1
 
 - A quiet `m.notice` ("🔕 Name has notifications silenced (Do Not Disturb).") posts when DND turns on, and clears when it turns off.
 - The contact's Matrix ghost gets a presence update so clients that show presence reflect the same state.
-- This will unarchive a chat in Beeper, if this tradeoff is undesirable please disable the feature. This is an issue external to the bridge.
 - Focus is a global on/off and not per contact.
   
 This is the same affordance Apple's Messages app shows in-conversation. The bridge announces itself as "available" once after startup so peer iPhones reciprocate with the key material needed to decrypt their subsequent presence updates — leave `statuskit_share_on_startup: true` for the best chance of seeing contacts' Focus state.
 
-If you find the notices noisy or already see Focus state on another Apple device, the install scripts ask "Enable StatusKit notifications?" on first install and on every subsequent re-run, so you can flip it at any time. (Or set `statuskit_notifications: false` in `~/.local/share/mautrix-imessage/config.yaml`.) Disabling suppresses the user-visible notices and presence updates while keeping the underlying StatusKit registration intact.
+If you find the notices noisy or already see Focus state on another Apple device, set `statuskit_notifications: false` in `~/.local/share/mautrix-imessage/config.yaml`, or re-run the install script and answer "no" to the StatusKit prompt. Disabling suppresses the user-visible notices and presence updates while keeping the underlying StatusKit registration intact.
 
 ## Shared Albums
 
@@ -340,7 +317,7 @@ The bridge converts a handful of formats automatically so attachments render in 
 
 ### Opt-in, incoming only
 
-- **HEIC / HEIF → JPEG** — gated on `heic_conversion` (default off). Decoded with `libheif`, re-encoded at `heic_jpeg_quality` (default `95`, clamped to 1–100). EXIF, ICC color profile, and XMP are preserved; orientation is normalised because `libheif` applies the rotation during decode. Animated / multi-image HEICs collapse to the primary frame with a warning. With the toggle off, HEIC bytes pass through to Matrix — modern clients (Element, Beeper) render them, older clients may not.
+- **HEIC / HEIF → JPEG** — gated on `heic_conversion` (default off). Decoded with `libheif`, re-encoded at `heic_jpeg_quality` (default `95`, clamped to 1–100). EXIF, ICC color profile, and XMP are preserved; orientation is normalised because `libheif` applies the rotation during decode. Animated / multi-image HEICs collapse to the primary frame with a warning. With the toggle off, HEIC bytes pass through to Matrix — modern clients render them, older clients may not.
 - **Non-MP4 video → MP4** — gated on `video_transcoding` (default off). Applies to any `video/*` MIME that isn't already `video/mp4` (`.mov`, `.m4v`, MKV, AVI, WebM, …). The bridge tries a stream-copy remux first (`ffmpeg -c copy -movflags +faststart`) — fast and lossless. If that fails, it falls back to a full re-encode (H.264 `-preset fast -crf 23` plus AAC). Audio tracks are preserved in both modes. The Matrix event ends up as `.mp4` / `video/mp4`.
 
 ### Live Photos
@@ -436,7 +413,7 @@ make uninstall
 ### Linux
 
 ```bash
-# If using systemd (from make install / make install-beeper)
+# If using systemd (from make install)
 systemctl --user status mautrix-imessage
 journalctl --user -u mautrix-imessage -f
 systemctl --user restart mautrix-imessage
@@ -466,7 +443,7 @@ Config lives in `~/.local/share/mautrix-imessage/config.yaml` (generated during 
 
 ### Reconfiguring without editing YAML
 
-The install scripts (`make install` and `make install-beeper`) are idempotent — re-run them any time and they detect the existing config, then walk you through interactive prompts to flip individual settings. Nothing is wiped. You can use a re-run to change:
+The install script (`make install`) is idempotent — re-run it any time and it detects the existing config, then walks you through interactive prompts to flip individual settings. Nothing is wiped. You can use a re-run to change:
 
 - **Preferred handle** — pick a different `tel:` / `mailto:` from the registered list
 - **External CardDAV** — change email / server / app password
@@ -477,8 +454,7 @@ The install scripts (`make install` and `make install-beeper`) are idempotent �
 - **Shell shortcuts** — add the `start-imessage` / `stop-imessage` / `restart-imessage` / `imessage-log` aliases on the next re-run if you skipped them initially (see [Shell shortcuts](#shell-shortcuts))
 
 ```bash
-make install              # self-hosted homeserver
-make install-beeper       # Beeper
+make install
 ```
 
 The per-chat backfill cap (`backfill.max_initial_messages`) is asked only on the **first** install, before the bridge database exists. To change it later, edit `~/.local/share/mautrix-imessage/config.yaml` directly.
@@ -542,15 +518,6 @@ cmd/
   │     ├── carddav_setup.go                #   `carddav-setup` subcommand — URL discovery + password encryption
   │     ├── setup_darwin.go                 #   macOS chat.db permission dialogs
   │     └── setup_other.go                  #   non-Darwin stubs (no-ops)
-  └── bbctl/                                # Beeper bridge-manager CLI — companion tool that talks to Beeper's
-        │                                   # API to register / auth / stop / delete this bridge in Beeper infra.
-        │                                   # Built into a separate `bbctl` binary alongside the bridge.
-        ├── main.go                         #   CLI entrypoint — sets up the app and dispatches subcommands
-        ├── register.go                     #   `register` — provisions a new Beeper bridge + writes default config
-        ├── auth.go                         #   `auth` — logs into the Beeper API and persists credentials
-        ├── stop.go                         #   `stop` — marks the bridge offline before teardown
-        └── delete.go                       #   `delete` — removes the bridge from the Beeper cluster
-
 pkg/connector/                              # bridgev2 connector — the main Go bridge package
   ├── connector.go                          #   bridge lifecycle + platform detection
   ├── client.go                             #   send/receive/reactions/edits/typing
@@ -681,10 +648,8 @@ tools/
 scripts/
   ├── install.sh                            # interactive setup — self-hosted bridge (macOS)
   ├── install-linux.sh                      # interactive setup — self-hosted bridge (Linux)
-  ├── install-beeper.sh                     # interactive setup — Beeper (macOS)
-  ├── install-beeper-linux.sh               # interactive setup — Beeper (Linux)
   ├── bootstrap-linux.sh                    # installs build deps on Ubuntu/Debian
-  ├── reset-bridge.sh                       # wipes state + Beeper deregistration (with prompts)
+  ├── reset-bridge.sh                       # stops bridge and wipes all local state (with prompts)
   ├── patch_bindings.py                     # patches uniffi-generated Go bindings for Go 1.24+ cgo types
   └── patch_bindings.sh                     # shell wrapper around `patch_bindings.py`
 
